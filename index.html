@@ -3,8 +3,6 @@
 
 <body>
 
-<h2>Hablar con RoboTV</h2>
-
 <button onclick="start()">Hablar</button>
 
 <script type="module">
@@ -31,22 +29,20 @@ appId: "1:1046745856716:web:fbac41ae5c25640482a069"
 }
 
 const app = initializeApp(firebaseConfig)
-
 const db = getDatabase(app)
 
-const params = new URLSearchParams(window.location.search)
+const params = new URLSearchParams(location.search)
 
 const session = params.get("session")
 
-const recognition = new webkitSpeechRecognition()
+function start(){
+
+const recognition =
+new webkitSpeechRecognition()
 
 recognition.lang="es-ES"
 
-window.start = ()=>{
-
 recognition.start()
-
-}
 
 recognition.onresult = (event)=>{
 
@@ -58,6 +54,8 @@ ref(db,"sessions/"+session),
 speech:text
 }
 )
+
+}
 
 }
 
