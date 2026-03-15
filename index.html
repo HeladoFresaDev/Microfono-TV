@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html>
-
 <body>
 
-<h2>RoboTV mic</h2>
-<p id="status">Esperando wake word...</p>
+<h2>Micrófono RoboTV</h2>
+
+<button onclick="start()">Hablar</button>
+
+<p id="text"></p>
 
 <script type="module">
 
@@ -15,7 +17,6 @@ getDatabase,
 ref,
 update
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js"
-
 
 const firebaseConfig = {
 
@@ -32,66 +33,36 @@ appId: "1:1046745856716:web:fbac41ae5c25640482a069"
 const app = initializeApp(firebaseConfig)
 const db = getDatabase(app)
 
-const params = new URLSearchParams(location.search)
-const session = params.get("session")
+const params =
+new URLSearchParams(location.search)
 
-const status = document.getElementById("status")
+const session =
+params.get("session")
 
-let listeningCommand = false
+function start(){
 
-function startListening(){
-
-const recognition = new webkitSpeechRecognition()
+const recognition =
+new webkitSpeechRecognition()
 
 recognition.lang="es-ES"
-recognition.continuous=true
 
 recognition.start()
 
-recognition.onresult = (event)=>{
+recognition.onresult=(event)=>{
 
-const text = event.results[event.results.length-1][0].transcript.toLowerCase()
+const text =
+event.results[0][0].transcript
 
-console.log(text)
-
-if(!listeningCommand){
-
-if(text.includes("oye robot")){
-
-status.innerText="Escuchando comando..."
-
-listeningCommand=true
-
-}
-
-}else{
-
-status.innerText="Enviando comando..."
+document.getElementById("text").innerText = text
 
 update(
 ref(db,"sessions/"+session),
-{
-speech:text
-}
+{speech:text}
 )
 
-listeningCommand=false
-
-status.innerText="Esperando wake word..."
-
 }
 
 }
-
-recognition.onend=()=>{
-
-startListening()
-
-}
-
-}
-
-startListening()
 
 </script>
 
