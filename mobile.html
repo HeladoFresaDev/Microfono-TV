@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+
+<h2>Hablar con RoboTV</h2>
+
+<button onclick="start()">Hablar</button>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"
+
+import {
+getDatabase,
+ref,
+update
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js"
+
+
+const firebaseConfig = {
+
+apiKey: "AIzaSyA8SDQKoqy99SHXNF4o3rlmif9TFLa_5co",
+authDomain: "robotv-ai.firebaseapp.com",
+databaseURL: "https://robotv-ai-default-rtdb.firebaseio.com",
+projectId: "robotv-ai",
+storageBucket: "robotv-ai.firebasestorage.app",
+messagingSenderId: "1046745856716",
+appId: "1:1046745856716:web:fbac41ae5c25640482a069"
+
+}
+
+const app = initializeApp(firebaseConfig)
+
+const db = getDatabase(app)
+
+const params = new URLSearchParams(window.location.search)
+
+const session = params.get("session")
+
+const recognition = new webkitSpeechRecognition()
+
+recognition.lang="es-ES"
+
+window.start = ()=>{
+
+recognition.start()
+
+}
+
+recognition.onresult = (event)=>{
+
+const text = event.results[0][0].transcript
+
+update(
+ref(db,"sessions/"+session),
+{
+speech:text
+}
+)
+
+}
+
+</script>
+
+</body>
+</html>
