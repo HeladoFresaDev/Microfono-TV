@@ -1,22 +1,23 @@
 <!DOCTYPE html>
 <html>
+<head>
+<meta charset="UTF-8">
+<title>Micrófono RoboTV</title>
+</head>
+
 <body>
 
 <h2>Micrófono RoboTV</h2>
 
-<button onclick="start()">Hablar</button>
+<button id="btn">Hablar</button>
 
+<p id="status">Presiona el botón</p>
 <p id="text"></p>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"
-
-import {
-getDatabase,
-ref,
-update
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js"
+import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js"
 
 const firebaseConfig = {
 
@@ -33,32 +34,56 @@ appId: "1:1046745856716:web:fbac41ae5c25640482a069"
 const app = initializeApp(firebaseConfig)
 const db = getDatabase(app)
 
-const params =
-new URLSearchParams(location.search)
+const params = new URLSearchParams(location.search)
+const session = params.get("session")
 
-const session =
-params.get("session")
+const status = document.getElementById("status")
+const textView = document.getElementById("text")
+const btn = document.getElementById("btn")
 
-function start(){
+// detectar reconocimiento de voz
 
-const recognition =
-new webkitSpeechRecognition()
+const SpeechRecognition =
+window.SpeechRecognition || window.webkitSpeechRecognition
+
+if(!SpeechRecognition){
+
+status.innerText =
+"Tu navegador no soporta reconocimiento de voz"
+
+}else{
+
+const recognition = new SpeechRecognition()
 
 recognition.lang="es-ES"
 
+btn.onclick = ()=>{
+
+status.innerText="Escuchando..."
+
 recognition.start()
+
+}
 
 recognition.onresult=(event)=>{
 
 const text =
 event.results[0][0].transcript
 
-document.getElementById("text").innerText = text
+textView.innerText = text
 
 update(
 ref(db,"sessions/"+session),
 {speech:text}
 )
+
+status.innerText="Enviado"
+
+}
+
+recognition.onerror=(e)=>{
+
+status.innerText="Error: "+e.error
 
 }
 
