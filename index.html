@@ -1,18 +1,13 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="UTF-8">
-<title>Micrófono RoboTV</title>
-</head>
 
 <body>
 
 <h2>Micrófono RoboTV</h2>
 
-<button id="btn">Hablar</button>
+<button id="talk">Hablar</button>
 
-<p id="status">Presiona el botón</p>
-<p id="text"></p>
+<p id="status"></p>
 
 <script type="module">
 
@@ -34,58 +29,66 @@ appId: "1:1046745856716:web:fbac41ae5c25640482a069"
 const app = initializeApp(firebaseConfig)
 const db = getDatabase(app)
 
-const params = new URLSearchParams(location.search)
-const session = params.get("session")
+const params =
+new URLSearchParams(location.search)
 
-const status = document.getElementById("status")
-const textView = document.getElementById("text")
-const btn = document.getElementById("btn")
-
-// detectar reconocimiento de voz
+const session =
+params.get("session")
 
 const SpeechRecognition =
 window.SpeechRecognition || window.webkitSpeechRecognition
-
-if(!SpeechRecognition){
-
-status.innerText =
-"Tu navegador no soporta reconocimiento de voz"
-
-}else{
 
 const recognition = new SpeechRecognition()
 
 recognition.lang="es-ES"
 
-btn.onclick = ()=>{
-
-status.innerText="Escuchando..."
+document.getElementById("talk").onclick = ()=>{
 
 recognition.start()
 
 }
 
-recognition.onresult=(event)=>{
+recognition.onresult = async (event)=>{
 
 const text =
 event.results[0][0].transcript
 
-textView.innerText = text
+document.getElementById("status").innerText = text
+
+// preguntar a Gemini
+
+const response = await fetch(
+"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyB7YMUPXumgK7ShzWouCIBihUtGpr8FfFw",
+{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+
+contents:[
+{
+parts:[
+{ text:text }
+]
+}
+
+]
+
+})
+})
+
+const data = await response.json()
+
+const reply =
+data.candidates[0].content.parts[0].text
+
+// enviar respuesta a la TV
 
 update(
 ref(db,"sessions/"+session),
-{speech:text}
+{reply:reply}
 )
-
-status.innerText="Enviado"
-
-}
-
-recognition.onerror=(e)=>{
-
-status.innerText="Error: "+e.error
-
-}
 
 }
 
