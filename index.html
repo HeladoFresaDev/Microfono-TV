@@ -3,28 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Micrófono Gemini RoboTV</title>
+    <title>Micrófono RoboTV (OpenRouter)</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
-    <script type="importmap">
-      {
-        "imports": {
-          "@google/generative-ai": "https://esm.run/@google/generative-ai"
-        }
-      }
-    </script>
 </head>
-<body style="background: #121212; color: white; text-align: center; font-family: sans-serif; padding-top: 50px;">
-    <h1>🎙️ Micrófono con Gemini</h1>
-    <button id="btn-hablar" style="padding: 20px 40px; font-size: 20px; border-radius: 50px; background: #4285f4; color: white; border: none;">
-        Hablar con la IA
+<body style="background: #0f172a; color: white; text-align: center; font-family: sans-serif; padding: 20px;">
+    <h2>🤖 RoboTV Control</h2>
+    <div id="status" style="color: #38bdf8; margin-bottom: 20px;">Listo para escucharte</div>
+    
+    <button id="btn-hablar" style="width: 150px; height: 150px; border-radius: 50%; border: none; background: #3b82f6; color: white; font-weight: bold; font-size: 1.2rem; box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); cursor: pointer;">
+        HABLAR
     </button>
-    <p id="status">Listo...</p>
 
-    <script type="module">
-        import { GoogleGenerativeAI } from "@google/generative-ai";
-
-        // CONFIGURACIÓN
+    <script>
+        // Configuración de Firebase (Tus datos actuales)
         const firebaseConfig = {
             apiKey: "AIzaSyA8SDQKoqy99SHXNF4o3rlmif9TFLa_5co",
             authDomain: "robotv-ai.firebaseapp.com",
@@ -34,13 +26,12 @@
             messagingSenderId: "1046745856716",
             appId: "1:1046745856716:web:fbac41ae5c25640482a069"
         };
-        
-        const GEMINI_API_KEY = "AIzaSyB7YMUPXumgK7ShzWouCIBihUtGpr8FfFw";
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+        // CONFIGURACIÓN OPENROUTER
+        const OPENROUTER_API_KEY = "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";
 
         const btn = document.getElementById('btn-hablar');
         const status = document.getElementById('status');
@@ -50,26 +41,40 @@
 
         recognition.onresult = async (event) => {
             const textoUsuario = event.results[0][0].transcript;
-            status.innerText = "Pensando respuesta...";
+            status.innerText = "IA procesando...";
+            btn.style.background = "#1e40af";
 
             try {
-                // Prompt para que Gemini actúe como el robot
-                const prompt = `Eres un robot pixelado simpático que vive dentro de una televisión WebOS. 
-                                Te acaban de decir: "${textoUsuario}". 
-                                Responde de forma breve (máximo 15 palabras) y con personalidad robótica.`;
-                
-                const result = await model.generateContent(prompt);
-                const respuestaIA = result.response.text();
+                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        "model": "google/gemma-3-27b-it:free", // Puedes cambiarlo por "meta-llama/llama-3-8b-instruct"
+                        "messages": [
+                            {"role": "system", "content": "Eres un robot de 8 bits simpático. Responde muy corto, máximo 10 palabras."},
+                            {"role": "user", "content": textoUsuario}
+                        ]
+                    })
+                });
 
-                // Enviamos a Firebase para que la TV lo reciba
+                const data = await response.json();
+                const respuestaIA = data.choices[0].message.content;
+
+                // Enviar respuesta a Firebase
                 db.ref('interaccion/').set({
                     mensaje: respuestaIA,
                     timestamp: Date.now()
                 });
-                status.innerText = "Enviado a TV!";
+
+                status.innerText = "¡Enviado a la tele!";
+                btn.style.background = "#3b82f6";
+
             } catch (err) {
-                status.innerText = "Error con Gemini";
                 console.error(err);
+                status.innerText = "Error en OpenRouter";
             }
         };
 
