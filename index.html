@@ -3,18 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Micrófono RoboTV</title>
+    <title>Micrófono Gemini RoboTV</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+      }
+    </script>
 </head>
 <body style="background: #121212; color: white; text-align: center; font-family: sans-serif; padding-top: 50px;">
-    <h1>🎙️ Micrófono RoboTV</h1>
-    <button id="btn-hablar" style="padding: 20px 40px; font-size: 20px; border-radius: 50px; border: none; background: #00FF00; cursor: pointer;">
-        Pulsar para Hablar
+    <h1>🎙️ Micrófono con Gemini</h1>
+    <button id="btn-hablar" style="padding: 20px 40px; font-size: 20px; border-radius: 50px; background: #4285f4; color: white; border: none;">
+        Hablar con la IA
     </button>
-    <p id="status" style="margin-top: 20px; color: #888;">Listo para escuchar...</p>
+    <p id="status">Listo...</p>
 
-    <script>
+    <script type="module">
+        import { GoogleGenerativeAI } from "@google/generative-ai";
+
+        // CONFIGURACIÓN
         const firebaseConfig = {
             apiKey: "AIzaSyA8SDQKoqy99SHXNF4o3rlmif9TFLa_5co",
             authDomain: "robotv-ai.firebaseapp.com",
@@ -24,42 +34,46 @@
             messagingSenderId: "1046745856716",
             appId: "1:1046745856716:web:fbac41ae5c25640482a069"
         };
+        
+        const GEMINI_API_KEY = "AIzaSyB7YMUPXumgK7ShzWouCIBihUtGpr8FfFw";
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const btn = document.getElementById('btn-hablar');
         const status = document.getElementById('status');
 
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            status.innerText = "Tu navegador no soporta reconocimiento de voz.";
-        } else {
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'es-ES';
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'es-ES';
 
-            recognition.onstart = () => {
-                status.innerText = "Escuchando...";
-                btn.style.background = "red";
-            };
+        recognition.onresult = async (event) => {
+            const textoUsuario = event.results[0][0].transcript;
+            status.innerText = "Pensando respuesta...";
 
-            recognition.onresult = (event) => {
-                const texto = event.results[0][0].transcript;
-                status.innerText = "Enviando: " + texto;
-                // Enviamos a Firebase
+            try {
+                // Prompt para que Gemini actúe como el robot
+                const prompt = `Eres un robot pixelado simpático que vive dentro de una televisión WebOS. 
+                                Te acaban de decir: "${textoUsuario}". 
+                                Responde de forma breve (máximo 15 palabras) y con personalidad robótica.`;
+                
+                const result = await model.generateContent(prompt);
+                const respuestaIA = result.response.text();
+
+                // Enviamos a Firebase para que la TV lo reciba
                 db.ref('interaccion/').set({
-                    mensaje: texto,
+                    mensaje: respuestaIA,
                     timestamp: Date.now()
                 });
-            };
+                status.innerText = "Enviado a TV!";
+            } catch (err) {
+                status.innerText = "Error con Gemini";
+                console.error(err);
+            }
+        };
 
-            recognition.onend = () => {
-                status.innerText = "Escucha terminada.";
-                btn.style.background = "#00FF00";
-            };
-
-            btn.onclick = () => recognition.start();
-        }
+        btn.onclick = () => recognition.start();
     </script>
 </body>
 </html>
