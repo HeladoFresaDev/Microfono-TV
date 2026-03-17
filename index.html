@@ -1,52 +1,47 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control RoboTV</title>
+    <title>RoboTV Controller</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <style>
-        body { background: #1a1a1a; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        input { width: 80%; padding: 15px; font-size: 18px; border-radius: 10px; border: none; margin-bottom: 20px; outline: none; }
-        button { width: 85%; padding: 20px; font-size: 20px; font-weight: bold; background: #00ff00; border: none; border-radius: 10px; cursor: pointer; transition: 0.2s; }
-        button:active { transform: scale(0.95); background: #00cc00; }
+        body { background: #111; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
+        input { width: 90%; padding: 15px; margin: 20px 0; border-radius: 10px; border: none; font-size: 1.2rem; }
+        button { background: #00BF00; color: white; border: none; padding: 20px 40px; border-radius: 10px; font-weight: bold; width: 90%; }
     </style>
 </head>
 <body>
-
-    <h2>Escribe para la TV</h2>
-    <input type="text" id="mensajeInput" placeholder="Escribe algo aquí...">
-    <button id="btnEnviar">ENVIAR A LA TV</button>
+    <h2 id="session-title">Conectando...</h2>
+    <input type="text" id="msg" placeholder="Escribe aquí...">
+    <button onclick="enviar()">ENVIAR A TV</button>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyA8SDQKoqy99SHXNF4o3rlmif9TFLa_5co",
-            authDomain: "robotv-ai.firebaseapp.com",
-            databaseURL: "https://robotv-ai-default-rtdb.firebaseio.com",
-            projectId: "robotv-ai",
-            storageBucket: "robotv-ai.firebasestorage.app",
-            messagingSenderId: "1046745856716",
-            appId: "1:1046745856716:web:fbac41ae5c25640482a069"
-        };
-
+        const firebaseConfig = { /* TUS DATOS DE FIREBASE */ };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        const input = document.getElementById('mensajeInput');
-        const btn = document.getElementById('btnEnviar');
+        // Obtener ID de sesión de la URL (?s=TV-XXXX)
+        const params = new URLSearchParams(window.location.search);
+        const sessionId = params.get('s');
 
-        btn.onclick = () => {
-            const texto = input.value;
-            if(texto.trim() !== "") {
-                // Enviamos el texto y un timestamp para que la TV detecte que es un mensaje nuevo
-                db.ref('interaccion/').set({
+        if(sessionId) {
+            document.getElementById('session-title').innerText = "Conectado a: " + sessionId;
+        } else {
+            document.getElementById('session-title').innerText = "Error: Sin Sesión";
+        }
+
+        function enviar() {
+            const texto = document.getElementById('msg').value;
+            if(texto && sessionId) {
+                db.ref('sesiones/' + sessionId).set({
                     mensaje: texto,
                     timestamp: Date.now()
                 });
-                input.value = ""; // Limpiar caja después de enviar
+                document.getElementById('msg').value = "";
             }
-        };
+        }
     </script>
 </body>
 </html>
